@@ -21,6 +21,11 @@ import {
   ChevronRight,
   ChevronLeft,
   HelpCircle,
+  Play,
+  Star,
+  Eye,
+  Clock,
+  Video,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +33,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { careers } from '@/lib/data';
 import { getRandomDomainQuestions, QuizQuestion } from '@/lib/quiz-data';
+import { getDomainRecommendations, getDomainSkillBreakdown } from '@/lib/recommendation-model';
+import type { LearningVideo } from '@/lib/video-data';
 
 export default function CareerDetailPage({
   params,
@@ -37,12 +44,27 @@ export default function CareerDetailPage({
   const { slug } = React.use(params);
   const career = careers.find((c) => c.slug === slug);
 
+  // Recommendation Model States
+  const [selectedSkillFilter, setSelectedSkillFilter] = React.useState<string>('All');
+  const [activeVideo, setActiveVideo] = React.useState<LearningVideo | null>(null);
+
   // Quiz Modal States
   const [isQuizOpen, setIsQuizOpen] = React.useState(false);
   const [quizQuestions, setQuizQuestions] = React.useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [userAnswers, setUserAnswers] = React.useState<Record<number, number>>({});
   const [isSubmitted, setIsSubmitted] = React.useState(false);
+
+  // Skill breakdown and AI recommendations for this domain
+  const skillBreakdown = React.useMemo(() => {
+    if (!career) return { programmingLanguages: [], domainSkills: [], allFilterTags: [] };
+    return getDomainSkillBreakdown(career);
+  }, [career]);
+
+  const domainRecs = React.useMemo(() => {
+    if (!career) return null;
+    return getDomainRecommendations(career.slug, { skillFilter: selectedSkillFilter });
+  }, [career, selectedSkillFilter]);
 
   if (!career) {
     return (
@@ -236,6 +258,148 @@ export default function CareerDetailPage({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Domain-Specific Recommended Learning Videos Section */}
+            <Card className="border-primary/20 overflow-hidden shadow-lg bg-card/60 backdrop-blur-md">
+              <CardHeader className="border-b border-border/50 pb-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge className="bg-gradient-brand text-white border-0 text-[11px] px-2.5 py-0.5">
+                        <Sparkles className="h-3 w-3 mr-1" /> AI Recommendation Model
+                      </Badge>
+                      <span className="text-xs text-muted-foreground font-medium">
+                        Filtered via Domain Tags
+                      </span>
+                    </div>
+                    <CardTitle className="font-display text-xl flex items-center gap-2">
+                      <Play className="h-5 w-5 text-primary" />
+                      Recommended Learning Videos for {career.title}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Targeted tutorials matching {career.title} programming languages & skills
+                    </p>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl border-primary/30 text-xs shrink-0 self-start md:self-auto"
+                    asChild
+                  >
+                    <Link href={`/learn?domain=${career.slug}`}>
+                      Open Full Hub <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+
+                {/* Domain Skills & Languages Tag Filter Chips */}
+                {skillBreakdown.allFilterTags.length > 1 && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto pt-3 pb-1 scrollbar-hide">
+                    {skillBreakdown.allFilterTags.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => setSelectedSkillFilter(tag)}
+                        className={`text-xs px-3 py-1 rounded-full whitespace-nowrap font-medium transition-all ${
+                          selectedSkillFilter === tag
+                            ? 'bg-primary text-white shadow-sm font-semibold'
+                            : 'bg-muted/70 hover:bg-primary/10 text-muted-foreground'
+                        }`}
+                      >
+                        {tag === 'All' ? `All (${domainRecs?.totalMatches || 0})` : tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardHeader>
+
+              <CardContent className="pt-5">
+                {domainRecs && domainRecs.recommendedVideos.length > 0 ? (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {domainRecs.recommendedVideos.slice(0, 4).map((video) => (
+                      <div
+                        key={video.id}
+                        onClick={() => setActiveVideo(video)}
+                        className="group border border-border/70 hover:border-primary/40 rounded-2xl overflow-hidden bg-card hover:shadow-md transition-all cursor-pointer flex flex-col"
+                      >
+                        <div className="relative aspect-video overflow-hidden bg-black/10">
+                          <img
+                            src={`https://img.youtube.com/vi/${video.youtubeId}/mqdefault.jpg`}
+                            alt={video.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-white/90 group-hover:scale-110 flex items-center justify-center shadow-lg transition-transform">
+                              <Play className="h-5 w-5 text-primary ml-0.5" />
+                            </div>
+                          </div>
+                          <Badge className="absolute bottom-2 right-2 bg-black/75 text-white text-[10px] px-1.5 py-0">
+                            {video.duration}
+                          </Badge>
+                        </div>
+
+                        <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                              <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                                {video.category}
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/20 text-primary">
+                                {video.difficulty}
+                              </Badge>
+                            </div>
+                            <h4 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+                              {video.title}
+                            </h4>
+                          </div>
+
+                          {/* Matched Tags */}
+                          <div className="flex items-center gap-1 flex-wrap pt-1">
+                            {video.tags.slice(0, 3).map((t) => (
+                              <span
+                                key={t}
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium"
+                              >
+                                #{t}
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/40">
+                            <span className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" /> {video.rating}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" /> {video.views}
+                            </span>
+                            <span className="truncate max-w-[100px]">{video.instructor}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No videos found matching skill filter "{selectedSkillFilter}".
+                  </div>
+                )}
+
+                {domainRecs && domainRecs.recommendedVideos.length > 4 && (
+                  <div className="mt-4 pt-3 border-t text-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-primary hover:text-primary font-semibold"
+                      asChild
+                    >
+                      <Link href={`/learn?domain=${career.slug}`}>
+                        View all {domainRecs.totalMatches} recommended videos for {career.title} <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <div className="space-y-6">
@@ -310,8 +474,9 @@ export default function CareerDetailPage({
                 size="lg"
                 asChild
               >
-                <Link href="/learn" className="flex items-center justify-center gap-2">
-                  Start Learning
+                <Link href={`/learn?domain=${career.slug}`} className="flex items-center justify-center gap-2">
+                  <Play className="h-5 w-5" />
+                  Start Learning ({domainRecs?.totalMatches || 0} Videos)
                 </Link>
               </Button>
 
@@ -537,6 +702,86 @@ export default function CareerDetailPage({
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* INTERACTIVE VIDEO PLAYER POP-UP MODAL */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {activeVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+          onClick={() => setActiveVideo(null)}
+        >
+          <div
+            className="relative w-full max-w-3xl bg-card border border-primary/20 rounded-3xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-card/90 px-5 py-3 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/10 text-primary border-0 text-xs">
+                  {activeVideo.category}
+                </Badge>
+                <span className="text-xs text-muted-foreground font-medium truncate max-w-[300px]">
+                  {activeVideo.instructor}
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveVideo(null)}
+                className="w-8 h-8 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Video Iframe */}
+            <div className="relative aspect-video w-full bg-black">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${activeVideo.youtubeId}?autoplay=1`}
+                title={activeVideo.title}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+
+            {/* Video Info */}
+            <div className="p-5 space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <h3 className="font-display text-lg font-bold leading-snug">
+                  {activeVideo.title}
+                </h3>
+                <div className="flex items-center gap-1 text-xs text-yellow-500 font-semibold shrink-0 pt-1">
+                  <Star className="h-3.5 w-3.5 fill-yellow-500" />
+                  {activeVideo.rating} ({activeVideo.views} views)
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {activeVideo.description}
+              </p>
+
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                {activeVideo.tags.map((t) => (
+                  <Badge key={t} variant="outline" className="text-[11px] py-0.5 border-primary/20 text-primary">
+                    #{t}
+                  </Badge>
+                ))}
+              </div>
+
+              <div className="pt-2 flex justify-between items-center border-t">
+                <span className="text-xs text-muted-foreground">
+                  Recommended for: <strong className="text-foreground">{career.title}</strong>
+                </span>
+                <Button size="sm" variant="outline" className="rounded-xl text-xs" asChild>
+                  <Link href={`/learn?domain=${career.slug}`}>
+                    View All {career.title} Videos <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

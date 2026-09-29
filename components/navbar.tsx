@@ -167,25 +167,29 @@ export function Navbar() {
 
             {/* Notifications Popover Card */}
             {notifOpen && (
-              <div className="absolute right-0 top-12 w-80 sm:w-96 rounded-2xl border border-primary/20 bg-card/95 backdrop-blur-xl shadow-2xl p-4 z-50 animate-scale-in space-y-3">
-                <div className="flex items-center justify-between border-b pb-3">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4.5 w-4.5 text-primary" />
-                    <h3 className="font-display font-bold text-base">EduGram Notifications</h3>
+              <div className="absolute right-0 top-12 w-[390px] sm:w-[430px] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-primary/20 bg-card/95 backdrop-blur-xl shadow-2xl p-4 z-50 animate-scale-in space-y-3">
+                <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Bell className="h-4.5 w-4.5 text-primary shrink-0" />
+                    <h3 className="font-display font-bold text-sm sm:text-base whitespace-nowrap">
+                      EduGram Notifications
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
                     {unreadCount > 0 && (
-                      <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full font-semibold">
+                      <span className="bg-primary/10 text-primary text-xs px-2.5 py-1 rounded-full font-semibold whitespace-nowrap inline-flex items-center">
                         {unreadCount} new
                       </span>
                     )}
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllRead}
+                        className="text-xs text-primary hover:bg-primary/10 px-2.5 py-1 rounded-lg transition-colors font-medium flex items-center gap-1.5 whitespace-nowrap"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Mark all read
+                      </button>
+                    )}
                   </div>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={markAllRead}
-                      className="text-xs text-primary hover:underline font-medium flex items-center gap-1"
-                    >
-                      <Check className="h-3 w-3" /> Mark all read
-                    </button>
-                  )}
                 </div>
 
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
