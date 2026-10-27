@@ -48,8 +48,8 @@ const ecosystemSections = [
   {
     icon: PlayCircle,
     title: 'Learn',
-    badge: 'Videos & Reels',
-    desc: 'Structured courses, bite-sized educational reels, and interactive video lessons to master any topic.',
+    badge: 'Video Courses',
+    desc: 'Structured courses, expert tutorials, and interactive video lessons to master any domain.',
     href: '/learn',
     color: 'from-blue-500 to-cyan-500',
   },
@@ -213,7 +213,7 @@ export default function Home() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.5 }}
             >
-              {['100% Student Focused', 'Interactive Video & Reels', 'Affordable EduMart Marketplace', '50,000+ Students'].map((t) => (
+              {['100% Student Focused', 'Interactive Video Lessons', 'Affordable EduMart Marketplace', '50,000+ Students'].map((t) => (
                 <div key={t} className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                   {t}
@@ -428,7 +428,7 @@ export default function Home() {
               {
                 name: 'Priya Sharma',
                 role: 'Engineering Student, COEP',
-                text: 'EduGram reels and quizzes helped me quickly revise concepts before exams, and I bought my Casio calculator on EduMart at half price!',
+                text: 'EduGram video tutorials and quizzes helped me quickly revise concepts before exams, and I bought my Casio calculator on EduMart at half price!',
                 rating: 5,
               },
               {

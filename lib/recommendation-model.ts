@@ -361,7 +361,7 @@ export function getDomainRecommendations(
   return {
     domain: career,
     recommendedVideos,
-    recommendedReels,
+    recommendedReels: [],
     domainSkills,
     programmingLanguages,
     allFilterTags,

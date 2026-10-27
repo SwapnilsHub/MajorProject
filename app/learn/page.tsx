@@ -15,9 +15,6 @@ import {
   Star,
   Eye,
   Bookmark,
-  Clapperboard,
-  Heart,
-  MessageCircle,
   Share2,
   Sparkles,
   Flame,
@@ -32,7 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AnimatedBg } from '@/components/animated-bg';
 import { careers, type Career } from '@/lib/data';
-import { learningVideos, learningReels, type LearningVideo, type LearningReel } from '@/lib/video-data';
+import { learningVideos, type LearningVideo } from '@/lib/video-data';
 import {
   getCareerBySlug,
   getDomainRecommendations,
@@ -45,10 +42,9 @@ function LearnContent() {
 
   // URL Query Params
   const domainParam = searchParams.get('domain') || '';
-  const initialTab = (searchParams.get('tab') as 'all' | 'videos' | 'reels') || 'all';
 
   // Component States
-  const [activeTab, setActiveTab] = React.useState<'all' | 'videos' | 'reels'>(initialTab);
+  const [selectedDifficulty, setSelectedDifficulty] = React.useState<string>('all');
   const [search, setSearch] = React.useState('');
   const [selectedDomainSlug, setSelectedDomainSlug] = React.useState<string>(domainParam);
   const [selectedSkillFilter, setSelectedSkillFilter] = React.useState<string>('All');
@@ -56,10 +52,6 @@ function LearnContent() {
 
   // Sync state if query params change
   React.useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab === 'reels') setActiveTab('reels');
-    else if (tab === 'videos') setActiveTab('videos');
-
     const dom = searchParams.get('domain');
     if (dom) {
       setSelectedDomainSlug(dom);
@@ -92,45 +84,34 @@ function LearnContent() {
     setSelectedDomainSlug(slug);
     setSelectedSkillFilter('All');
     if (slug) {
-      router.push(`/learn?domain=${slug}${activeTab !== 'all' ? `&tab=${activeTab}` : ''}`);
+      router.push(`/learn?domain=${slug}`);
     } else {
-      router.push(`/learn${activeTab !== 'all' ? `?tab=${activeTab}` : ''}`);
+      router.push('/learn');
     }
   };
 
-  // Base video & reel candidate pool (filtered by domain recommendation model if domain is selected)
+  // Base video candidate pool (filtered by domain recommendation model if domain is selected)
   const baseVideos = React.useMemo(() => {
     if (domainRecs) return domainRecs.recommendedVideos;
     return learningVideos;
   }, [domainRecs]);
 
-  const baseReels = React.useMemo(() => {
-    if (domainRecs) return domainRecs.recommendedReels;
-    return learningReels;
-  }, [domainRecs]);
-
-  // Search Filter
+  // Search & Difficulty Filter
   const filteredVideos = React.useMemo(() => {
-    return baseVideos.filter(
-      (v) =>
+    return baseVideos.filter((v) => {
+      const matchesSearch =
         search.trim() === '' ||
         v.title.toLowerCase().includes(search.toLowerCase()) ||
         v.category.toLowerCase().includes(search.toLowerCase()) ||
         v.instructor.toLowerCase().includes(search.toLowerCase()) ||
-        v.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [baseVideos, search]);
+        v.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()));
 
-  const filteredReels = React.useMemo(() => {
-    return baseReels.filter(
-      (r) =>
-        search.trim() === '' ||
-        r.title.toLowerCase().includes(search.toLowerCase()) ||
-        r.topic.toLowerCase().includes(search.toLowerCase()) ||
-        r.instructor.toLowerCase().includes(search.toLowerCase()) ||
-        r.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [baseReels, search]);
+      const matchesDifficulty =
+        selectedDifficulty === 'all' || v.difficulty.toLowerCase() === selectedDifficulty.toLowerCase();
+
+      return matchesSearch && matchesDifficulty;
+    });
+  }, [baseVideos, search, selectedDifficulty]);
 
   // Featured Hero Video (top recommended video if domain selected, else fallback)
   const featuredVideo = filteredVideos[0] || learningVideos[0];
@@ -164,7 +145,7 @@ function LearnContent() {
                 </h1>
 
                 <p className="text-sm md:text-base text-muted-foreground max-w-2xl leading-relaxed">
-                  Videos and bite-sized reels filtered strictly for{' '}
+                  Videos filtered strictly for{' '}
                   <span className="text-foreground font-semibold">{currentCareer.title}</span> based on programming languages & core skills:
                   {' '}
                   <span className="text-primary font-medium">{currentCareer.skills.join(', ')}</span>.
@@ -229,13 +210,13 @@ function LearnContent() {
           <div className="text-center mb-8 space-y-3">
             <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5">
               <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">EduGram Learn & Reels Hub</span>
+              <span className="text-sm font-medium text-primary">EduGram Video Learning Hub</span>
             </div>
             <h1 className="font-display text-4xl md:text-5xl font-bold">
-              Learn & <span className="text-gradient">Short Reels</span>
+              Learn & <span className="text-gradient">Video Masterclasses</span>
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
-              Curated video masterclasses & 60-second bite-sized reels filtered by career domains and skill tags.
+              Curated video masterclasses and tutorials filtered by career domains and skill tags.
             </p>
 
             {/* Quick Domain Selector Dropdown Pills */}
@@ -272,7 +253,7 @@ function LearnContent() {
           </div>
         )}
 
-        {/* ─── Search bar & Format Tabs (All, Video Courses, Short Reels) ─── */}
+        {/* ─── Search bar & Difficulty Filter Tabs ─── */}
         <div className="max-w-2xl mx-auto mb-10 space-y-4">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -281,7 +262,7 @@ function LearnContent() {
               placeholder={
                 currentCareer
                   ? `Search ${currentCareer.title} videos, skills (e.g. ${currentCareer.skills.slice(0, 3).join(', ')})...`
-                  : 'Search videos, reels, programming languages, topics...'
+                  : 'Search video courses, programming languages, topics...'
               }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -297,42 +278,38 @@ function LearnContent() {
             )}
           </div>
 
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <button
-              onClick={() => setActiveTab('all')}
-              className={`flex items-center gap-2 px-5 py-2 rounded-xl font-semibold text-xs md:text-sm transition-all ${
-                activeTab === 'all'
+              onClick={() => setSelectedDifficulty('all')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs md:text-sm transition-all ${
+                selectedDifficulty === 'all'
                   ? 'bg-gradient-brand text-white shadow-md'
                   : 'bg-muted/70 hover:bg-primary/10 text-muted-foreground'
               }`}
             >
-              <Sparkles className="h-4 w-4" /> All ({filteredVideos.length + filteredReels.length})
+              <Sparkles className="h-4 w-4" /> All Videos ({baseVideos.length})
             </button>
-            <button
-              onClick={() => setActiveTab('videos')}
-              className={`flex items-center gap-2 px-5 py-2 rounded-xl font-semibold text-xs md:text-sm transition-all ${
-                activeTab === 'videos'
-                  ? 'bg-gradient-brand text-white shadow-md'
-                  : 'bg-muted/70 hover:bg-primary/10 text-muted-foreground'
-              }`}
-            >
-              <Play className="h-4 w-4" /> Video Courses ({filteredVideos.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('reels')}
-              className={`flex items-center gap-2 px-5 py-2 rounded-xl font-semibold text-xs md:text-sm transition-all ${
-                activeTab === 'reels'
-                  ? 'bg-gradient-brand text-white shadow-md'
-                  : 'bg-muted/70 hover:bg-primary/10 text-muted-foreground'
-              }`}
-            >
-              <Clapperboard className="h-4 w-4" /> Short Reels ({filteredReels.length})
-            </button>
+            {['Beginner', 'Intermediate', 'Advanced'].map((lvl) => {
+              const count = baseVideos.filter((v) => v.difficulty.toLowerCase() === lvl.toLowerCase()).length;
+              return (
+                <button
+                  key={lvl}
+                  onClick={() => setSelectedDifficulty(lvl)}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold text-xs md:text-sm transition-all ${
+                    selectedDifficulty === lvl
+                      ? 'bg-gradient-brand text-white shadow-md'
+                      : 'bg-muted/70 hover:bg-primary/10 text-muted-foreground'
+                  }`}
+                >
+                  {lvl} ({count})
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* ─── FEATURED HERO VIDEO ─── */}
-        {!search && activeTab !== 'reels' && featuredVideo && (
+        {!search && selectedDifficulty === 'all' && featuredVideo && (
           <Card className="border-primary/20 overflow-hidden mb-12 bg-gradient-to-br from-primary/5 via-purple-500/5 to-cyan-500/5 rounded-3xl shadow-xl">
             <CardContent className="p-0">
               <div className="grid md:grid-cols-2 gap-0">
@@ -409,112 +386,42 @@ function LearnContent() {
           </Card>
         )}
 
-        {/* ─── SHORT REELS SPOTLIGHT ─── */}
-        {(activeTab === 'all' || activeTab === 'reels') && (
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="font-display text-2xl font-bold flex items-center gap-2">
-                  <Clapperboard className="h-6 w-6 text-purple-500" />
-                  {currentCareer ? `${currentCareer.title} Learning Reels` : 'EduGram Short Reels'}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  60-second quick concept bites filtered by tags
-                </p>
-              </div>
-              <Button variant="outline" size="sm" className="rounded-xl border-primary/30" asChild>
-                <Link href={`/learn/reels${currentCareer ? `?domain=${currentCareer.slug}` : ''}`}>
-                  Open Vertical Player <ChevronRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-
-            {filteredReels.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                {filteredReels.map((reel) => (
-                  <Link key={reel.id} href={`/learn/reels${currentCareer ? `?domain=${currentCareer.slug}` : ''}`}>
-                    <Card className="border-primary/10 overflow-hidden group hover:border-purple-500/50 hover:shadow-glow transition-all rounded-2xl cursor-pointer h-full">
-                      <div className="relative aspect-[9/16] overflow-hidden bg-black">
-                        <img
-                          src={`https://img.youtube.com/vi/${reel.thumbnail}/mqdefault.jpg`}
-                          alt={reel.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-
-                        <Badge className="absolute top-2 left-2 bg-purple-600/90 text-white text-[10px] px-1.5 py-0 border-0">
-                          {reel.topic}
-                        </Badge>
-                        <Badge className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0">
-                          {reel.duration}
-                        </Badge>
-
-                        <div className="absolute bottom-3 left-3 right-3 space-y-1 text-white">
-                          <div className="flex items-center gap-1.5 text-[11px] font-medium text-white/90">
-                            <span>{reel.instructorAvatar}</span>
-                            <span className="truncate">{reel.instructor}</span>
-                          </div>
-                          <p className="text-xs font-semibold line-clamp-2 leading-snug">{reel.title}</p>
-                          <div className="flex items-center justify-between text-[10px] text-white/70 pt-1">
-                            <span className="flex items-center gap-0.5">
-                              <Heart className="h-3 w-3 fill-red-500 text-red-500" /> {reel.likes}
-                            </span>
-                            <span className="flex items-center gap-0.5">
-                              <MessageCircle className="h-3 w-3" /> {reel.comments}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-10 bg-card/40 rounded-2xl border border-dashed border-border text-sm text-muted-foreground">
-                No reels found matching current filter.
-              </div>
-            )}
-          </div>
-        )}
-
         {/* ─── FULL VIDEO COURSES SECTION ─── */}
-        {(activeTab === 'all' || activeTab === 'videos') && (
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="font-display text-2xl font-bold flex items-center gap-2">
-                  <Play className="h-6 w-6 text-blue-500" />
-                  {currentCareer ? `Recommended Courses for ${currentCareer.title}` : 'Structured Video Courses'}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Comprehensive video tutorials matching languages & skills: {filteredVideos.length} available
-                </p>
-              </div>
-              <Button variant="outline" size="sm" className="rounded-xl border-primary/30" asChild>
-                <Link href={`/learn/videos${currentCareer ? `?domain=${currentCareer.slug}` : ''}`}>
-                  Browse Video Grid <ChevronRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="font-display text-2xl font-bold flex items-center gap-2">
+                <Play className="h-6 w-6 text-blue-500" />
+                {currentCareer ? `Recommended Courses for ${currentCareer.title}` : 'Structured Video Courses'}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Comprehensive video tutorials matching languages & skills: {filteredVideos.length} available
+              </p>
             </div>
-
-            {filteredVideos.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredVideos.map((video) => (
-                  <VideoCard
-                    key={video.id}
-                    video={video}
-                    onPlay={() => setActiveVideo(video)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-card/40 rounded-2xl border border-dashed border-border text-muted-foreground">
-                <p className="text-base font-semibold">No video courses found.</p>
-                <p className="text-xs mt-1">Try selecting a different skill tag or clearing your search query.</p>
-              </div>
-            )}
+            <Button variant="outline" size="sm" className="rounded-xl border-primary/30" asChild>
+              <Link href={`/learn/videos${currentCareer ? `?domain=${currentCareer.slug}` : ''}`}>
+                Browse Video Grid <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
-        )}
+
+          {filteredVideos.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredVideos.map((video) => (
+                <VideoCard
+                  key={video.id}
+                  video={video}
+                  onPlay={() => setActiveVideo(video)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-card/40 rounded-2xl border border-dashed border-border text-muted-foreground">
+              <p className="text-base font-semibold">No video courses found.</p>
+              <p className="text-xs mt-1">Try selecting a different skill tag or clearing your search query.</p>
+            </div>
+          )}
+        </div>
 
         {/* ─── EMBEDDED VIDEO PLAYER MODAL ─── */}
         {activeVideo && (

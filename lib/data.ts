@@ -713,14 +713,14 @@ export const jobs: Job[] = [
 export const stats = [
   { label: 'Active Learners', value: '50,000+' },
   { label: 'Educational Videos', value: '2,500+' },
-  { label: 'Learning Reels', value: '5,000+' },
+  { label: 'Curated Tutorials', value: '5,000+' },
   { label: 'Quizzes Taken', value: '120,000+' },
   { label: 'EduMart Listings', value: '15,000+' },
   { label: 'Projects Built', value: '8,500+' },
 ];
 
 export const features = [
-  { title: 'Learn (Videos & Reels)', desc: 'Interactive educational videos, short bite-sized learning reels, and structured courses across multiple subjects.', icon: BookOpen },
+  { title: 'Learn (Video Courses)', desc: 'Interactive educational videos, structured courses, and hands-on tutorials across all career domains.', icon: BookOpen },
   { title: 'Practice (Quizzes)', desc: 'Subject-wise quizzes, MCQs, timed challenges, instant explanations, and global leaderboards.', icon: Cpu },
   { title: 'Track (Progress & Badges)', desc: 'Monitor study hours, quiz accuracy, streaks, completion certificates, and skill achievements.', icon: LayoutDashboard },
   { title: 'Build (Project Recommendations)', desc: 'Step-by-step project roadmaps tailored to your skills, interests, and career path.', icon: Code2 },

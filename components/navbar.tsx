@@ -40,7 +40,7 @@ interface NotificationItem {
 }
 
 const initialNotifications: NotificationItem[] = [
-  { id: '1', text: 'New reel added: 60-second Sorting Algorithms Explained', time: '1h ago', read: false },
+  { id: '1', text: 'New video lesson: Sorting Algorithms Explained', time: '1h ago', read: false },
   { id: '2', text: 'Your quiz score: 92% in Data Structures MCQ', time: '3h ago', read: false },
   { id: '3', text: 'New EduMart item listed near your college: Arduino Uno Kit', time: '1d ago', read: false },
   { id: '4', text: 'Certificate earned: Full-Stack Foundations', time: '2d ago', read: false },

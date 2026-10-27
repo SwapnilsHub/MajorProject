@@ -7,7 +7,7 @@ import { AnimatedBg } from '@/components/animated-bg';
 import { stats } from '@/lib/data';
 
 const objectives = [
-  'Interactive educational videos, courses, and bite-sized learning reels for modern students',
+  'Interactive educational videos, structured courses, and hands-on tutorials for modern students',
   'Subject-wise quizzes, MCQs, timed challenges, and competitive leaderboards',
   'Hands-on project recommendations and step-by-step skill roadmaps',
   'EduMart — an affordable second-hand marketplace for textbooks, calculators, and lab gear',
@@ -17,7 +17,7 @@ const objectives = [
 ];
 
 const ecosystemPillars = [
-  { step: '1', title: 'Learn', desc: 'Watch structured video lessons and quick learning reels crafted for easy understanding.' },
+  { step: '1', title: 'Learn', desc: 'Watch structured video lessons and comprehensive masterclasses crafted for easy understanding.' },
   { step: '2', title: 'Practice', desc: 'Test your knowledge with subject quizzes, timed challenges, and instant feedback.' },
   { step: '3', title: 'Build', desc: 'Apply what you learn with recommended real-world projects and detailed roadmaps.' },
   { step: '4', title: 'Track', desc: 'Monitor your progress, earn certificates, and build a strong student profile.' },

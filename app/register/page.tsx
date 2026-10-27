@@ -38,7 +38,7 @@ import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const floatingFeatures = [
-  { icon: Sparkles, label: 'Video & Reels Learning', color: 'from-blue-500 to-cyan-600', delay: 0 },
+  { icon: Sparkles, label: 'Video Courses & Tutorials', color: 'from-blue-500 to-cyan-600', delay: 0 },
   { icon: Zap, label: 'Interactive Quizzes', color: 'from-purple-500 to-indigo-600', delay: 0.3 },
   { icon: Target, label: 'Project Roadmaps', color: 'from-emerald-500 to-teal-600', delay: 0.6 },
   { icon: ShoppingBag, label: 'EduMart Second-Hand Market', color: 'from-amber-500 to-rose-600', delay: 0.9 },

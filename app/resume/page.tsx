@@ -31,6 +31,7 @@ import TemplateCarousel from '@/components/Resume/TemplateCarousel';
 import ResumeFields from '@/config/ResumeFields';
 import AIAssistantPanel from '@/components/AIAssistant/AIAssistantPanel';
 import AtsScanModal from '@/components/Resume/AtsScanModal';
+import { runAtsAnalysis } from '@/lib/ats/analysis';
 
 const DEFAULT_TAB = 'contact';
 
@@ -50,6 +51,11 @@ export default function ResumePage() {
   const tab = requestedTab && (ResumeFields as Record<string, any>)[requestedTab] ? requestedTab : DEFAULT_TAB;
 
   const resume = useSelector((state: any) => state.resume);
+
+  // Real-time ATS analysis while customizing resume (0 if no text/content)
+  const liveAtsAnalysis = React.useMemo(() => {
+    return runAtsAnalysis(resume);
+  }, [resume]);
 
   const openAtsScanner = (tab: 'scan' | 'upload') => {
     setAtsModalTab(tab);
@@ -131,7 +137,7 @@ export default function ResumePage() {
             onClick={() => openAtsScanner('scan')}
             className="h-8 gap-1.5 text-xs bg-gradient-brand text-white hover:opacity-90 shadow-sm rounded-lg"
           >
-            <ShieldCheck className="w-3.5 h-3.5" /> Scan ATS Score
+            <ShieldCheck className="w-3.5 h-3.5" /> Scan ATS Score ({liveAtsAnalysis.overall})
           </Button>
           <Button
             size="sm"
@@ -173,6 +179,30 @@ export default function ResumePage() {
               ATS Optimized
             </Badge>
           </div>
+
+          <div className="h-4 w-px bg-border/60" />
+
+          {/* Live ATS Score Indicator while customizing */}
+          <button
+            type="button"
+            onClick={() => openAtsScanner('scan')}
+            className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors group cursor-pointer"
+            title="Click to view detailed 10-dimension ATS breakdown"
+          >
+            <ShieldCheck className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+            <span>ATS Score:</span>
+            <Badge
+              className={`text-xs px-2 py-0.5 font-bold transition-all ${
+                liveAtsAnalysis.overall >= 80
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  : liveAtsAnalysis.overall >= 50
+                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+              }`}
+            >
+              {liveAtsAnalysis.overall} / 100
+            </Badge>
+          </button>
         </div>
 
         {/* Workspace View */}

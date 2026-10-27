@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     'student community',
     'EduMart',
     'second-hand books',
-    'learning reels',
+    'domain video tutorials',
     'project recommendations',
   ],
   openGraph: {

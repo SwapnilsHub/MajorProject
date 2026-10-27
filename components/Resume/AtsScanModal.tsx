@@ -99,35 +99,52 @@ export default function AtsScanModal({ onClose, initialTab = 'scan' }: AtsScanMo
   // Helper parser for raw text files
   const parseTextToRawResume = (rawText: string, filename: string) => {
     const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    const name = lines[0] || filename.replace(/\.[^/.]+$/, '');
+    if (lines.length === 0) {
+      return {
+        contact: {},
+        summary: {},
+        experience: [],
+        skills: {},
+        education: [],
+        projects: [],
+        certificates: [],
+      };
+    }
+
     const emailMatch = rawText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
     const phoneMatch = rawText.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+    const matchedSkills = lines.filter((l) => /java|python|javascript|react|node|html|css|sql|aws|docker|git/i.test(l)).join(', ');
+    const expLines = lines.slice(4, 15).join('\n').trim();
 
     return {
       contact: {
-        name: name,
+        name: lines[0] || '',
         email: emailMatch ? emailMatch[0] : '',
         phone: phoneMatch ? phoneMatch[0] : '',
       },
       summary: {
-        summary: lines.slice(1, 4).join(' '),
+        summary: lines.slice(1, 4).join(' ').trim(),
       },
-      experience: [
-        {
-          role: 'Professional Experience',
-          company: 'Extracted Experience',
-          description: lines.slice(4, 15).join('\n'),
-        },
-      ],
+      experience: expLines
+        ? [
+            {
+              role: 'Extracted Role',
+              company: 'Company',
+              description: expLines,
+            },
+          ]
+        : [],
       skills: {
-        skills: lines.filter((l) => /java|python|javascript|react|node|html|css|sql|aws|docker|git/i.test(l)).join(', ') || 'Software Development, Technical Skills',
+        skills: matchedSkills || '',
       },
-      education: [
-        {
-          degree: 'Bachelor of Science / Technology',
-          institution: 'University Graduate',
-        },
-      ],
+      education: lines.length > 3
+        ? [
+            {
+              degree: lines[2] || '',
+              institution: lines[1] || '',
+            },
+          ]
+        : [],
     };
   };
 
@@ -241,10 +258,16 @@ export default function AtsScanModal({ onClose, initialTab = 'scan' }: AtsScanMo
                 <span>100% Real-Time ATS Algorithm</span>
               </div>
               <h4 className="font-display text-2xl font-bold">
-                {activeTab === 'upload' && uploadedFileName ? `Scanned: ${uploadedFileName}` : 'Current Resume ATS Score'}
+                {activeTab === 'upload' && uploadedFileName
+                  ? `Scanned: ${uploadedFileName}`
+                  : activeAnalysis.overall === 0
+                  ? 'No Content Present (Score: 0)'
+                  : 'Current Resume ATS Score'}
               </h4>
               <p className="text-xs text-muted-foreground max-w-md">
-                Evaluated against header formatting, experience impact, skill coverage, readability, and recruiter criteria.
+                {activeAnalysis.overall === 0
+                  ? 'Your resume currently contains no text or content. Add details in the editor to see your live ATS compatibility score.'
+                  : 'Evaluated against header formatting, experience impact, skill coverage, readability, and recruiter criteria.'}
               </p>
             </div>
 
@@ -313,11 +336,15 @@ export default function AtsScanModal({ onClose, initialTab = 'scan' }: AtsScanMo
                   <CheckCircle2 className="h-4 w-4" /> Top Resume Strengths
                 </h6>
                 <ul className="space-y-1.5 text-xs text-muted-foreground">
-                  {activeAnalysis.insights.topStrengths.map((str: string, idx: number) => (
-                    <li key={idx} className="flex items-start gap-1.5">
-                      <span className="text-green-500">•</span> {str}
-                    </li>
-                  ))}
+                  {activeAnalysis.insights.topStrengths.length > 0 ? (
+                    activeAnalysis.insights.topStrengths.map((str: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-1.5">
+                        <span className="text-green-500">•</span> {str}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="italic text-muted-foreground">No strengths detected yet. Add resume text or sections to evaluate.</li>
+                  )}
                 </ul>
               </CardContent>
             </Card>
@@ -329,11 +356,15 @@ export default function AtsScanModal({ onClose, initialTab = 'scan' }: AtsScanMo
                   <AlertTriangle className="h-4 w-4" /> ATS Optimization Opportunities
                 </h6>
                 <ul className="space-y-1.5 text-xs text-muted-foreground">
-                  {activeAnalysis.insights.biggestOpportunities.map((opp: string, idx: number) => (
-                    <li key={idx} className="flex items-start gap-1.5">
-                      <span className="text-amber-500">•</span> {opp}
-                    </li>
-                  ))}
+                  {activeAnalysis.insights.biggestOpportunities.length > 0 ? (
+                    activeAnalysis.insights.biggestOpportunities.map((opp: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-1.5">
+                        <span className="text-amber-500">•</span> {opp}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="italic text-muted-foreground">Fill in your resume details to unlock personalized optimization suggestions.</li>
+                  )}
                 </ul>
               </CardContent>
             </Card>

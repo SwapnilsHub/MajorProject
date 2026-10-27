@@ -29,7 +29,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 
 const faqs = [
-  { q: 'Is EduGram free to use for students?', a: 'Yes! Learning videos, reels, quizzes, project roadmaps, and browsing EduMart are completely free for all students.' },
+  { q: 'Is EduGram free to use for students?', a: 'Yes! Learning videos, courses, quizzes, project roadmaps, and browsing EduMart are completely free for all students.' },
   { q: 'What is EduMart and how does it work?', a: 'EduMart is EduGram’s second-hand educational marketplace where students can buy and sell textbooks, calculators, lab gear, and electronics at student-friendly prices.' },
   { q: 'How do I list an item for sale on EduMart?', a: 'Sign in to your EduGram account, head over to EduMart, click "Post a Product", upload photos, set a student-friendly price, and publish!' },
   { q: 'Can I track my study progress and quizzes?', a: 'Yes! The EduGram Progress Tracker logs your study hours, quiz accuracy, daily streaks, and completion certificates.' },

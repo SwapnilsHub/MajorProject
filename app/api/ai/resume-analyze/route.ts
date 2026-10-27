@@ -12,7 +12,19 @@ export async function POST(req: Request) {
     }
 
     // Handle AI Resume Analysis & ATS Scoring
-    const textToAnalyze = resumeText || 'Software Engineer with experience in JavaScript, React, Node.js, and SQL.';
+    const cleanText = (resumeText || '').trim();
+    if (!cleanText) {
+      return NextResponse.json({
+        atsScore: 0,
+        strengths: [],
+        missingKeywords: [],
+        recommendations: [
+          'Resume has no text or content present. Add your contact information, summary, skills, experience, and education to evaluate ATS compatibility.',
+        ],
+      });
+    }
+
+    const textToAnalyze = cleanText;
     const role = targetRole || 'Full Stack Developer';
 
     // Call InsForge Model Gateway (OpenRouter AI compatibility endpoint)
