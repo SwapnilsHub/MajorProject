@@ -29,7 +29,6 @@ import {
 } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/components/auth-provider';
-import { LanguageSwitcher } from '@/components/language-switcher';
 import { useLanguage } from '@/components/language-provider';
 import { cn } from '@/lib/utils';
 
@@ -147,9 +146,6 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {/* Language Switcher */}
-          <LanguageSwitcher />
-
           {/* Notifications Bell Icon Button (PopUp Menu) */}
           <div className="relative" ref={notifRef}>
             <Button
@@ -235,12 +231,20 @@ export function Navbar() {
           {/* Desktop Right Auth Actions */}
           <div className="hidden md:flex items-center gap-2">
             {user ? (
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard" className="flex items-center gap-1.5">
-                  <User className="h-4 w-4 text-primary" />
-                  {t.nav.profile}
-                </Link>
-              </Button>
+              <Link
+                href="/dashboard"
+                aria-label="Student Profile"
+                title={user?.email ? `Student Profile (${user.email})` : 'Student Profile'}
+                className="relative group p-[2px] rounded-full bg-gradient-to-tr from-primary via-cyan-400 to-indigo-500 hover:shadow-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center shrink-0 ml-1"
+              >
+                <div className="w-9 h-9 rounded-full bg-background flex items-center justify-center transition-colors group-hover:bg-primary/10">
+                  <User className="h-4.5 w-4.5 text-primary group-hover:scale-110 transition-transform duration-300" />
+                </div>
+                <span
+                  className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-xs"
+                  title="Online"
+                />
+              </Link>
             ) : (
               <>
                 <Button variant="ghost" size="sm" asChild>

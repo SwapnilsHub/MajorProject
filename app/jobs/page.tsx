@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import {
   Briefcase,
   Search,
@@ -17,6 +18,8 @@ import {
   GraduationCap,
   Filter,
   Check,
+  Target,
+  Zap,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +34,12 @@ import {
 } from '@/components/ui/select';
 import { AnimatedBg } from '@/components/animated-bg';
 import { jobs, type Job } from '@/lib/data';
+import {
+  getSelectedDomain,
+  setSelectedDomain,
+  isJobMatchingDomain,
+  DEFAULT_DOMAIN,
+} from '@/lib/domain-selection';
 
 export default function JobsPage() {
   const [search, setSearch] = React.useState('');
@@ -39,13 +48,35 @@ export default function JobsPage() {
   const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
   const [copiedLink, setCopiedLink] = React.useState(false);
+  const [selectedDomain, setLocalSelectedDomain] = React.useState(DEFAULT_DOMAIN);
+  const [onlyRecommended, setOnlyRecommended] = React.useState(false);
 
-  // Load saved bookmarks from localStorage
+  // Load saved bookmarks and read selected domain from URL query param or profile
   React.useEffect(() => {
     try {
       const saved = localStorage.getItem('edugram_saved_jobs');
       if (saved) setBookmarkedJobs(JSON.parse(saved));
     } catch (e) {}
+
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const domainParam = urlParams.get('domain');
+      if (domainParam && domainParam.trim()) {
+        setLocalSelectedDomain(domainParam.trim());
+        setOnlyRecommended(true);
+      } else {
+        setLocalSelectedDomain(getSelectedDomain());
+      }
+    }
+
+    const handleDomainChange = (e: any) => {
+      if (e.detail?.domain) {
+        setLocalSelectedDomain(e.detail.domain);
+      }
+    };
+
+    window.addEventListener('edugram:domain_selected', handleDomainChange);
+    return () => window.removeEventListener('edugram:domain_selected', handleDomainChange);
   }, []);
 
   const toggleBookmark = (id: string, e?: React.MouseEvent) => {
@@ -65,6 +96,11 @@ export default function JobsPage() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  // Compute matched jobs for the chosen domain
+  const domainMatchedJobs = React.useMemo(() => {
+    return jobs.filter((job) => isJobMatchingDomain(job, selectedDomain));
+  }, [selectedDomain]);
+
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -74,8 +110,9 @@ export default function JobsPage() {
 
     const matchesType = typeFilter === 'All' || job.type === typeFilter;
     const matchesLocation = locationFilter === 'All' || job.location === locationFilter;
+    const matchesRecommended = !onlyRecommended || isJobMatchingDomain(job, selectedDomain);
 
-    return matchesSearch && matchesType && matchesLocation;
+    return matchesSearch && matchesType && matchesLocation && matchesRecommended;
   });
 
   const popularSkills = ['Python', 'React', 'DSA', 'Node.js', 'SQL', 'ML', 'C++'];
@@ -85,7 +122,7 @@ export default function JobsPage() {
       <AnimatedBg />
       <div className="container mx-auto px-4 lg:px-8 relative z-10 max-w-6xl">
         {/* Header Hero Section */}
-        <div className="text-center max-w-3xl mx-auto mb-10 space-y-4">
+        <div className="text-center max-w-3xl mx-auto mb-8 space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider">
             <Briefcase className="h-4 w-4" /> Career Opportunities • EduGram
           </div>
@@ -113,6 +150,55 @@ export default function JobsPage() {
           </div>
         </div>
 
+        {/* AI RECOMMENDED JOBS & INTERNSHIPS BANNER FOR CHOSEN DOMAIN */}
+        <div className="max-w-4xl mx-auto mb-8 p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-primary/10 via-violet-500/5 to-indigo-500/10 border border-primary/25 shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-brand flex items-center justify-center text-white shrink-0 shadow-md">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-display font-bold text-base sm:text-lg">
+                    Recommended Roles for: {selectedDomain}
+                  </h2>
+                  <Badge
+                    variant="outline"
+                    className="bg-primary/10 text-primary border-primary/30 text-xs font-semibold"
+                  >
+                    ★ Active Professional Domain
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground max-w-xl">
+                  We identified <strong>{domainMatchedJobs.length} opportunities</strong> matching your chosen professional domain in <strong>{selectedDomain}</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <Button
+                size="sm"
+                variant={onlyRecommended ? 'default' : 'outline'}
+                onClick={() => setOnlyRecommended(!onlyRecommended)}
+                className={`text-xs rounded-xl font-semibold flex-1 sm:flex-initial transition-all ${
+                  onlyRecommended
+                    ? 'bg-gradient-brand text-white shadow-md'
+                    : 'border-primary/30 text-primary hover:bg-primary/10'
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1" />
+                {onlyRecommended ? 'Show All Positions' : `Filter ${selectedDomain} (${domainMatchedJobs.length})`}
+              </Button>
+              <Link href="/domains">
+                <Button size="sm" variant="ghost" className="text-xs text-muted-foreground hover:text-foreground">
+                  Change Domain →
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Search & Filter Bar */}
         <div className="max-w-4xl mx-auto mb-8 space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -126,8 +212,23 @@ export default function JobsPage() {
               />
             </div>
 
+            <Button
+              variant={onlyRecommended ? 'default' : 'outline'}
+              onClick={() => setOnlyRecommended(!onlyRecommended)}
+              className={`h-12 rounded-xl text-xs sm:text-sm font-semibold shrink-0 gap-2 transition-all ${
+                onlyRecommended
+                  ? 'bg-gradient-brand text-white shadow-md'
+                  : 'border-primary/30 text-primary hover:bg-primary/10'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              {onlyRecommended
+                ? `Filtered to ${selectedDomain}`
+                : `⭐ Recommended for ${selectedDomain} (${domainMatchedJobs.length})`}
+            </Button>
+
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full sm:w-44 h-12 rounded-xl border-border/80 bg-background/80">
+              <SelectTrigger className="w-full sm:w-40 h-12 rounded-xl border-border/80 bg-background/80">
                 <SelectValue placeholder="Job Type" />
               </SelectTrigger>
               <SelectContent>
@@ -140,7 +241,7 @@ export default function JobsPage() {
             </Select>
 
             <Select value={locationFilter} onValueChange={setLocationFilter}>
-              <SelectTrigger className="w-full sm:w-44 h-12 rounded-xl border-border/80 bg-background/80">
+              <SelectTrigger className="w-full sm:w-40 h-12 rounded-xl border-border/80 bg-background/80">
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
@@ -173,12 +274,13 @@ export default function JobsPage() {
                 {skill}
               </button>
             ))}
-            {(search || typeFilter !== 'All' || locationFilter !== 'All') && (
+            {(search || typeFilter !== 'All' || locationFilter !== 'All' || onlyRecommended) && (
               <button
                 onClick={() => {
                   setSearch('');
                   setTypeFilter('All');
                   setLocationFilter('All');
+                  setOnlyRecommended(false);
                 }}
                 className="text-xs text-primary hover:underline ml-auto shrink-0 font-medium"
               >
@@ -191,7 +293,9 @@ export default function JobsPage() {
         {/* Job Listings Grid */}
         <div className="space-y-4 max-w-4xl mx-auto">
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-            <span>Showing {filteredJobs.length} opportunities</span>
+            <span>
+              Showing <strong>{filteredJobs.length}</strong> {onlyRecommended ? `recommended (${selectedDomain})` : ''} opportunities
+            </span>
             <span>{bookmarkedJobs.length} Saved</span>
           </div>
 
@@ -210,6 +314,7 @@ export default function JobsPage() {
                   setSearch('');
                   setTypeFilter('All');
                   setLocationFilter('All');
+                  setOnlyRecommended(false);
                 }}
                 className="rounded-xl text-sm"
               >
@@ -217,90 +322,106 @@ export default function JobsPage() {
               </Button>
             </div>
           ) : (
-            filteredJobs.map((job) => (
-              <Card
-                key={job.id}
-                className="border-primary/10 hover:border-primary/30 transition-all rounded-2xl overflow-hidden hover:shadow-glow group"
-              >
-                <CardContent className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-                  <div className="flex items-start gap-4 flex-1">
-                    {/* Company Initial Badge */}
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-brand flex items-center justify-center text-white font-bold text-lg shadow-md shrink-0 mt-0.5">
-                      {job.company.charAt(0)}
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <h3 className="font-display font-bold text-lg group-hover:text-primary transition-colors">
-                          {job.title}
-                        </h3>
-                        <Badge
-                          variant="outline"
-                          className={
-                            job.type === 'Internship'
-                              ? 'border-cyan-500/30 text-cyan-500 bg-cyan-500/5'
-                              : job.type === 'Remote'
-                              ? 'border-purple-500/30 text-purple-500 bg-purple-500/5'
-                              : job.type === 'Government'
-                              ? 'border-amber-500/30 text-amber-500 bg-amber-500/5'
-                              : 'border-primary/30 text-primary bg-primary/5'
-                          }
-                        >
-                          {job.type}
-                        </Badge>
+            filteredJobs.map((job) => {
+              const isMatched = isJobMatchingDomain(job, selectedDomain);
+              return (
+                <Card
+                  key={job.id}
+                  className={`transition-all rounded-2xl overflow-hidden group ${
+                    isMatched
+                      ? 'border-primary/40 shadow-[0_4px_24px_rgba(59,130,246,0.12)] hover:border-primary/60'
+                      : 'border-primary/10 hover:border-primary/30 hover:shadow-glow'
+                  }`}
+                >
+                  <CardContent className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+                    <div className="flex items-start gap-4 flex-1">
+                      {/* Company Initial Badge */}
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-brand flex items-center justify-center text-white font-bold text-lg shadow-md shrink-0 mt-0.5">
+                        {job.company.charAt(0)}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                          <Building2 className="h-3.5 w-3.5 text-primary" /> {job.company}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> {job.location}
-                        </span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                          {job.salary}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> {job.posted}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {job.skills.map((s) => (
-                          <Badge key={s} variant="secondary" className="text-[11px] px-2 py-0.5 font-normal">
-                            {s}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <h3 className="font-display font-bold text-lg group-hover:text-primary transition-colors">
+                            {job.title}
+                          </h3>
+                          <Badge
+                            variant="outline"
+                            className={
+                              job.type === 'Internship'
+                                ? 'border-cyan-500/30 text-cyan-500 bg-cyan-500/5'
+                                : job.type === 'Remote'
+                                ? 'border-purple-500/30 text-purple-500 bg-purple-500/5'
+                                : job.type === 'Government'
+                                ? 'border-amber-500/30 text-amber-500 bg-amber-500/5'
+                                : 'border-primary/30 text-primary bg-primary/5'
+                            }
+                          >
+                            {job.type}
                           </Badge>
-                        ))}
+                          {isMatched && (
+                            <Badge
+                              variant="outline"
+                              className="border-primary/40 bg-primary/10 text-primary font-semibold text-[11px] gap-1.5 py-0.5 px-2.5 shadow-xs"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-primary fill-primary/20" />
+                              Recommended for {selectedDomain}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                            <Building2 className="h-3.5 w-3.5 text-primary" /> {job.company}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> {job.location}
+                          </span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                            {job.salary}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> {job.posted}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {job.skills.map((s) => (
+                            <Badge key={s} variant="secondary" className="text-[11px] px-2 py-0.5 font-normal">
+                              {s}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 self-end md:self-center shrink-0 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-border/50">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => toggleBookmark(job.id, e)}
-                      className="rounded-xl h-10 w-10 text-muted-foreground hover:text-primary shrink-0"
-                      title={bookmarkedJobs.includes(job.id) ? 'Saved' : 'Save Job'}
-                    >
-                      <Bookmark
-                        className={`h-4 w-4 ${
-                          bookmarkedJobs.includes(job.id) ? 'fill-primary text-primary' : ''
-                        }`}
-                      />
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 self-end md:self-center shrink-0 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-border/50">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => toggleBookmark(job.id, e)}
+                        className="rounded-xl h-10 w-10 text-muted-foreground hover:text-primary shrink-0"
+                        title={bookmarkedJobs.includes(job.id) ? 'Saved' : 'Save Job'}
+                      >
+                        <Bookmark
+                          className={`h-4 w-4 ${
+                            bookmarkedJobs.includes(job.id) ? 'fill-primary text-primary' : ''
+                          }`}
+                        />
+                      </Button>
 
-                    <Button
-                      onClick={() => setSelectedJob(job)}
-                      className="bg-gradient-brand text-white rounded-xl text-sm font-semibold flex-1 md:flex-initial h-10 px-5 shadow-sm hover:shadow-md"
-                    >
-                      View Details & Apply <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      <Button
+                        onClick={() => setSelectedJob(job)}
+                        className="bg-gradient-brand text-white rounded-xl text-sm font-semibold flex-1 md:flex-initial h-10 px-5 shadow-sm hover:shadow-md"
+                      >
+                        View Details & Apply <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
 
@@ -320,9 +441,19 @@ export default function JobsPage() {
                   {selectedJob.company.charAt(0)}
                 </div>
                 <div>
-                  <Badge variant="outline" className="mb-1.5">
-                    {selectedJob.type}
-                  </Badge>
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <Badge variant="outline">
+                      {selectedJob.type}
+                    </Badge>
+                    {isJobMatchingDomain(selectedJob, selectedDomain) && (
+                      <Badge
+                        variant="outline"
+                        className="border-primary/40 bg-primary/10 text-primary text-[11px] font-semibold gap-1.5 py-0.5 px-2"
+                      >
+                        <Sparkles className="w-3 h-3 text-primary fill-primary/20" /> Matches {selectedDomain}
+                      </Badge>
+                    )}
+                  </div>
                   <h2 className="font-display font-bold text-2xl">{selectedJob.title}</h2>
                   <div className="text-sm font-semibold text-primary mt-0.5">
                     {selectedJob.company} • {selectedJob.location}

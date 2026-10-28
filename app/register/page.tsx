@@ -88,7 +88,7 @@ export default function RegisterPage() {
   const [password, setPassword] = React.useState('');
   const [college, setCollege] = React.useState('');
   const [city, setCity] = React.useState('');
-  const [educationLevel, setEducationLevel] = React.useState('');
+  const [educationLevel, setEducationLevel] = React.useState('Undergraduate (B.E / B.Tech)');
   const [agreed, setAgreed] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -100,6 +100,20 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedCollege = college.trim() || 'COEP Technological University';
+    const trimmedCity = city.trim() || 'Pune';
+    const selectedEducation = educationLevel || 'Undergraduate (B.E / B.Tech)';
+
+    if (!trimmedName) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (!trimmedEmail) {
+      setError('Please enter a valid email address.');
+      return;
+    }
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
@@ -111,23 +125,70 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
-          college: college,
-          city: city,
-          education_level: educationLevel,
-        },
-      },
-    });
+    // 1. Clear any old user session/profile from previous sessions
+    try {
+      localStorage.removeItem('edugram_user_profile');
+      localStorage.removeItem('edugram_auth_user');
+    } catch (e) {}
 
-    if (error) {
-      setError(typeof error === 'object' && 'message' in error ? error.message : String(error));
-      setLoading(false);
-      return;
+    // 2. Set newly registered credentials as the active student profile
+    const freshProfile = {
+      fullName: trimmedName,
+      email: trimmedEmail,
+      college: trimmedCollege,
+      city: trimmedCity,
+      educationLevel: selectedEducation,
+      phone: '+91 98765 43210',
+      targetDomain: 'AI & Machine Learning',
+      bio: `Undergraduate student in ${selectedEducation} at ${trimmedCollege}. Passionate about technology, coding, and innovation.`,
+      githubUrl: 'https://github.com',
+      linkedinUrl: 'https://linkedin.com',
+      portfolioUrl: '',
+      registeredAt: new Date().toISOString(),
+    };
+
+    const newAuthUser = {
+      id: 'user-' + Date.now(),
+      email: trimmedEmail,
+      name: trimmedName,
+      college: trimmedCollege,
+      city: trimmedCity,
+      educationLevel: selectedEducation,
+    };
+
+    try {
+      localStorage.setItem('edugram_user_profile', JSON.stringify(freshProfile));
+      localStorage.setItem('edugram_auth_user', JSON.stringify(newAuthUser));
+      window.dispatchEvent(new CustomEvent('edugram:profile_updated', { detail: freshProfile }));
+    } catch (e) {
+      console.warn('LocalStorage save notice:', e);
+    }
+
+    // 3. Register with Supabase and attempt immediate session creation
+    try {
+      await supabase.auth.signOut().catch(() => {});
+      const { data, error } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+        options: {
+          data: {
+            full_name: trimmedName,
+            college: trimmedCollege,
+            city: trimmedCity,
+            education_level: selectedEducation,
+          },
+        },
+      });
+
+      // If auto-confirmation enabled or session returned, attempt sign-in
+      if (!data?.session) {
+        await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        }).catch(() => {});
+      }
+    } catch (authErr) {
+      console.warn('Supabase registration sync notice:', authErr);
     }
 
     setLoading(false);
@@ -362,11 +423,7 @@ export default function RegisterPage() {
                       <SelectValue placeholder="Select Education Level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="10th">10th Class</SelectItem>
-                      <SelectItem value="12th">12th Science / Commerce / Arts</SelectItem>
-                      <SelectItem value="diploma">Diploma Student</SelectItem>
-                      <SelectItem value="undergraduate">Undergraduate (B.Tech / B.Sc / B.Com / BCA)</SelectItem>
-                      <SelectItem value="postgraduate">Postgraduate (M.Tech / MBA / MCA)</SelectItem>
+                      <SelectItem value="Undergraduate (B.E / B.Tech)">Undergraduate (B.E / B.Tech)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

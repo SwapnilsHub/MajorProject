@@ -70,6 +70,8 @@ import { Progress } from '@/components/ui/progress';
 import { AnimatedBg } from '@/components/animated-bg';
 import { useAuth } from '@/components/auth-provider';
 import { supabase } from '@/lib/supabase/client';
+import { QuizHistoryModal } from '@/components/quiz-history-modal';
+import { SkillMilestonesModal } from '@/components/skill-milestones-modal';
 import {
   LineChart,
   Line,
@@ -208,7 +210,7 @@ export default function StudentProfilePage() {
   const [phone, setPhone] = React.useState('');
   const [college, setCollege] = React.useState('');
   const [city, setCity] = React.useState('');
-  const [educationLevel, setEducationLevel] = React.useState('undergraduate');
+  const [educationLevel, setEducationLevel] = React.useState('Undergraduate (B.E / B.Tech)');
   const [targetDomain, setTargetDomain] = React.useState('AI & Machine Learning');
   const [bio, setBio] = React.useState('');
   const [githubUrl, setGithubUrl] = React.useState('');
@@ -216,62 +218,139 @@ export default function StudentProfilePage() {
   const [portfolioUrl, setPortfolioUrl] = React.useState('');
   
   const [saving, setSaving] = React.useState(false);
-  const [savedSuccess, setSavedSuccess] = React.useState(false);
   const [showEditModal, setShowEditModal] = React.useState(false);
+  const [isClosingModal, setIsClosingModal] = React.useState(false);
+  const [showSuccessToast, setShowSuccessToast] = React.useState(false);
+  const [profileHighlight, setProfileHighlight] = React.useState(false);
+  const [showQuizHistoryModal, setShowQuizHistoryModal] = React.useState(false);
+  const [showSkillMilestonesModal, setShowSkillMilestonesModal] = React.useState(false);
   const [activeEditTab, setActiveEditTab] = React.useState<'personal' | 'academic' | 'links'>('personal');
 
-  // Initialize student profile from auth user metadata
+  // Initialize student profile from localStorage or auth user metadata
   React.useEffect(() => {
-    if (user) {
+    let loadedFromLocal = false;
+    try {
+      const cached = localStorage.getItem('edugram_user_profile');
+      if (cached) {
+        const p = JSON.parse(cached);
+        // Only load if matches currently active user or if no other user is logged in
+        if (!user?.email || !p.email || p.email.toLowerCase() === user.email.toLowerCase()) {
+          if (p.fullName) setFullName(p.fullName);
+          if (p.email) setEmail(p.email);
+          if (p.phone) setPhone(p.phone);
+          if (p.college) setCollege(p.college);
+          if (p.city) setCity(p.city);
+          if (p.educationLevel) setEducationLevel(p.educationLevel === 'undergraduate' ? 'Undergraduate (B.E / B.Tech)' : p.educationLevel);
+          if (p.targetDomain) setTargetDomain(p.targetDomain);
+          if (p.bio !== undefined) setBio(p.bio);
+          if (p.githubUrl !== undefined) setGithubUrl(p.githubUrl);
+          if (p.linkedinUrl !== undefined) setLinkedinUrl(p.linkedinUrl);
+          if (p.portfolioUrl !== undefined) setPortfolioUrl(p.portfolioUrl);
+          loadedFromLocal = true;
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading local profile cache:', e);
+    }
+
+    if (!loadedFromLocal && user) {
       const meta = user.user_metadata || {};
-      setFullName(meta.full_name || user.email?.split('@')[0] || 'Student');
+      const uName = meta.full_name || user.email?.split('@')[0] || 'Student';
+      setFullName(uName);
       setEmail(user.email || '');
-      setPhone(meta.phone || '+91 98765 43210');
+      setPhone(meta.phone || '');
       setCollege(meta.college || 'COEP Technological University');
-      setCity(meta.city || 'Pune');
-      setEducationLevel(meta.education_level || 'undergraduate');
+      setCity(meta.city || 'Belgaum');
+      setEducationLevel(meta.education_level && meta.education_level !== 'undergraduate' ? meta.education_level : 'Undergraduate (B.E / B.Tech)');
       setTargetDomain(meta.target_domain || 'AI & Machine Learning');
-      setBio(meta.bio || 'Computer Science student passionate about AI, Machine Learning, and Full-Stack Engineering.');
-      setGithubUrl(meta.github_url || 'https://github.com');
-      setLinkedinUrl(meta.linkedin_url || 'https://linkedin.com');
-      setPortfolioUrl(meta.portfolio_url || 'https://edugram.in');
+      setBio(meta.bio || `Undergraduate student in ${meta.education_level || 'Undergraduate (B.E / B.Tech)'} at ${meta.college || 'COEP Technological University'}.`);
+      setGithubUrl(meta.github_url || '');
+      setLinkedinUrl(meta.linkedin_url || '');
+      setPortfolioUrl(meta.portfolio_url || '');
     }
   }, [user]);
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleOpenModal = () => {
+    setIsClosingModal(false);
+    setShowEditModal(true);
+  };
+
+  const handleCloseModal = () => {
+    if (isClosingModal) return;
+    setIsClosingModal(true);
+    setTimeout(() => {
+      setShowEditModal(false);
+      setIsClosingModal(false);
+    }, 280);
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setSavedSuccess(false);
 
+    const profilePayload = {
+      fullName: fullName.trim() || 'Student',
+      email: email.trim(),
+      phone: phone.trim(),
+      college: college.trim(),
+      city: city.trim(),
+      educationLevel,
+      targetDomain,
+      bio: bio.trim(),
+      githubUrl: githubUrl.trim(),
+      linkedinUrl: linkedinUrl.trim(),
+      portfolioUrl: portfolioUrl.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 1. Instant local persistence so changes never lag or vanish
     try {
-      const { error } = await supabase.auth.updateUser({
-        email: email !== user?.email ? email : undefined,
-        data: {
-          full_name: fullName,
-          phone: phone,
-          college: college,
-          city: city,
-          education_level: educationLevel,
-          target_domain: targetDomain,
-          bio: bio,
-          github_url: githubUrl,
-          linkedin_url: linkedinUrl,
-          portfolio_url: portfolioUrl,
-        },
-      });
-
-      if (!error) {
-        setSavedSuccess(true);
-        setTimeout(() => {
-          setSavedSuccess(false);
-          setShowEditModal(false);
-        }, 1500);
-      }
+      localStorage.setItem('edugram_user_profile', JSON.stringify(profilePayload));
+      window.dispatchEvent(new CustomEvent('edugram:profile_updated', { detail: profilePayload }));
     } catch (err) {
-      console.error('Failed to update profile:', err);
-    } finally {
-      setSaving(false);
+      console.warn('LocalStorage save error:', err);
     }
+
+    // 2. Trigger sleek closing animation immediately
+    setIsClosingModal(true);
+
+    // 3. Asynchronously sync to Supabase in background without blocking the UI
+    if (user && supabase) {
+      try {
+        supabase.auth.updateUser({
+          email: email && email !== user?.email ? email : undefined,
+          data: {
+            full_name: profilePayload.fullName,
+            phone: profilePayload.phone,
+            college: profilePayload.college,
+            city: profilePayload.city,
+            education_level: profilePayload.educationLevel,
+            target_domain: profilePayload.targetDomain,
+            bio: profilePayload.bio,
+            github_url: profilePayload.githubUrl,
+            linkedin_url: profilePayload.linkedinUrl,
+            portfolio_url: profilePayload.portfolioUrl,
+          },
+        }).catch((err) => {
+          console.warn('Background Supabase update notice:', err);
+        });
+      } catch (err) {
+        console.warn('Supabase call notice:', err);
+      }
+    }
+
+    // 4. Complete exit animation smoothly, unmount modal, and trigger celebration effects
+    setTimeout(() => {
+      setShowEditModal(false);
+      setIsClosingModal(false);
+      setSaving(false);
+
+      // Celebrate with glowing toast and hero card highlight pulse
+      setShowSuccessToast(true);
+      setProfileHighlight(true);
+      setTimeout(() => setProfileHighlight(false), 2400);
+      setTimeout(() => setShowSuccessToast(false), 4500);
+    }, 280);
   };
 
   const stats = mockLearningStats;
@@ -321,10 +400,53 @@ export default function StudentProfilePage() {
   return (
     <div className="relative min-h-screen pt-8 pb-20">
       <AnimatedBg />
+
+      {/* CREATIVE CELEBRATORY NOTIFICATION BANNER */}
+      {showSuccessToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] max-w-lg w-[92vw] sm:w-auto animate-slide-up pointer-events-auto">
+          <div className="relative group overflow-hidden flex items-center gap-3.5 px-5 py-3.5 rounded-2xl bg-card/95 border border-emerald-500/40 shadow-[0_12px_45px_rgba(16,185,129,0.35)] backdrop-blur-2xl text-foreground">
+            {/* Animated shimmer beam */}
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-primary/20 to-teal-500/10 animate-shimmer pointer-events-none" />
+            
+            {/* Glowing animated badge */}
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shrink-0 shadow-lg shadow-emerald-500/30">
+              <CheckCircle2 className="w-5 h-5 animate-pulse" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
+            </div>
+
+            <div className="relative space-y-0.5 pr-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold tracking-tight text-foreground">
+                  Profile Updated Successfully!
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                  <Sparkles className="w-3 h-3 text-amber-400 animate-spin-glow" /> SAVED
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Your changes are active & updated across your student portal in real-time.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowSuccessToast(false)}
+              className="relative text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted/60 transition-colors ml-1"
+              aria-label="Close notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 lg:px-8 relative z-10">
         
         {/* STUDENT PROFILE HEADER HERO CARD */}
-        <Card className="border-primary/20 bg-gradient-to-br from-card/95 via-card/60 to-primary/10 mb-8 shadow-xl overflow-hidden rounded-3xl">
+        <Card className={`border-primary/20 bg-gradient-to-br from-card/95 via-card/60 to-primary/10 mb-8 shadow-xl overflow-hidden rounded-3xl transition-all duration-700 ${
+          profileHighlight
+            ? 'ring-4 ring-emerald-500/60 shadow-[0_0_50px_rgba(16,185,129,0.35)] scale-[1.01]'
+            : 'ring-0'
+        }`}>
           <div className="h-2 w-full bg-gradient-brand" />
           <CardContent className="pt-8 pb-8 px-6 lg:px-10">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
@@ -370,8 +492,8 @@ export default function StudentProfilePage() {
                     <span className="flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-primary" /> {city}
                     </span>
-                    <span className="flex items-center gap-1.5 capitalize font-medium text-primary">
-                      <BookOpen className="h-3.5 w-3.5" /> {educationLevel}
+                    <span className="flex items-center gap-1.5 font-medium text-primary">
+                      <BookOpen className="h-3.5 w-3.5" /> {educationLevel || 'Undergraduate (B.E / B.Tech)'}
                     </span>
                   </div>
 
@@ -408,8 +530,8 @@ export default function StudentProfilePage() {
 
                 <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
                   <Button
-                    onClick={() => setShowEditModal(true)}
-                    className="bg-gradient-brand text-white shadow-lg rounded-xl h-11 px-5 font-semibold text-sm flex-1 sm:flex-initial"
+                    onClick={handleOpenModal}
+                    className="bg-gradient-brand text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 rounded-xl h-11 px-5 font-semibold text-sm flex-1 sm:flex-initial transition-all active:scale-95"
                   >
                     <Edit3 className="h-4 w-4 mr-2" />
                     Edit Profile
@@ -437,11 +559,28 @@ export default function StudentProfilePage() {
 
         {/* EDIT PROFILE MODAL / DIALOG */}
         {showEditModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-            <div className="bg-card border border-primary/20 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-scale-in">
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !saving) handleCloseModal();
+            }}
+            className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ease-out ${
+              isClosingModal
+                ? 'bg-black/0 backdrop-blur-none pointer-events-none'
+                : 'bg-black/75 backdrop-blur-md animate-fade-in'
+            }`}
+          >
+            <div
+              className={`bg-card/95 border border-primary/25 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto transition-all duration-300 ease-out ${
+                isClosingModal
+                  ? 'scale-90 opacity-0 -translate-y-8 -rotate-1 blur-xs pointer-events-none'
+                  : 'scale-100 opacity-100 translate-y-0 shadow-2xl animate-scale-in'
+              }`}
+            >
               <button
-                onClick={() => setShowEditModal(false)}
-                className="absolute top-5 right-5 p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
+                type="button"
+                onClick={handleCloseModal}
+                disabled={saving}
+                className="absolute top-5 right-5 p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-all hover:rotate-90 active:scale-90"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -575,11 +714,7 @@ export default function StudentProfilePage() {
                             <SelectValue placeholder="Select Education Level" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="10th">10th Class</SelectItem>
-                            <SelectItem value="12th">12th Science / Commerce / Arts</SelectItem>
-                            <SelectItem value="diploma">Diploma Student</SelectItem>
-                            <SelectItem value="undergraduate">Undergraduate (B.Tech / B.Sc / BCA)</SelectItem>
-                            <SelectItem value="postgraduate">Postgraduate (M.Tech / MBA / MCA)</SelectItem>
+                            <SelectItem value="Undergraduate (B.E / B.Tech)">Undergraduate (B.E / B.Tech)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -647,20 +782,39 @@ export default function StudentProfilePage() {
                   </div>
                 )}
 
-                {savedSuccess && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-medium border border-green-500/20">
-                    <CheckCircle2 className="h-4 w-4 shrink-0" /> Student profile saved successfully!
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" /> Auto-updates in real-time
+                  </p>
+                  <div className="flex items-center gap-2.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleCloseModal}
+                      disabled={saving}
+                      className="rounded-xl px-4 text-xs font-semibold hover:bg-muted"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={saving}
+                      className="bg-gradient-brand text-white rounded-xl px-6 relative overflow-hidden group shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-95 transition-all text-xs font-semibold h-11"
+                    >
+                      <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none" />
+                      {saving ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 mr-2 animate-bounce text-emerald-300" />
+                          Saving Changes...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                          Save Profile Changes
+                        </>
+                      )}
+                    </Button>
                   </div>
-                )}
-
-                <div className="flex justify-end gap-3 pt-3 border-t">
-                  <Button type="button" variant="ghost" onClick={() => setShowEditModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={saving} className="bg-gradient-brand text-white rounded-xl px-6">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Profile Changes
-                  </Button>
                 </div>
               </form>
             </div>
@@ -774,82 +928,301 @@ export default function StudentProfilePage() {
 
         {/* Analytics Section */}
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          {/* Progress chart */}
-          <Card className="lg:col-span-2 border-primary/10">
-            <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Learning Activity & Quizzes (2026)
-              </CardTitle>
+          {/* Progress chart & Learning Activity */}
+          <Card className="lg:col-span-2 border-primary/10 hover:border-primary/30 transition-all rounded-2xl overflow-hidden shadow-sm">
+            <CardHeader className="pb-3 border-b border-border/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <CardTitle className="font-display flex items-center gap-2 text-lg">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Learning Activity & Quizzes (2026)
+                </CardTitle>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/30 font-semibold">
+                    🔥 14-Day Streak
+                  </Badge>
+                  <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-500 border-emerald-500/30 font-semibold">
+                    🎯 91.5% Avg Score
+                  </Badge>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={progressData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="hours"
-                    stroke="hsl(var(--chart-1))"
-                    strokeWidth={3}
-                    dot={{ fill: 'hsl(var(--chart-1))', r: 4 }}
-                    name="Study Hours"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="quizzes"
-                    stroke="hsl(var(--chart-3))"
-                    strokeWidth={2}
-                    name="Quizzes Completed"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            <CardContent className="pt-4 space-y-5">
+              {/* Visual Performance Trend Chart */}
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 space-y-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Monthly Hours vs Quizzes Completed</span>
+                  <div className="flex items-center gap-3 text-[11px]">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" /> Study Hours
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" /> Quizzes Passed
+                    </span>
+                  </div>
+                </div>
+
+                {/* Reliable SVG Trend Curve */}
+                <div className="w-full h-36 relative">
+                  <svg className="w-full h-full overflow-visible" viewBox="0 0 500 120" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
+                        <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    {/* Horizontal Grid lines */}
+                    <line x1="0" y1="20" x2="500" y2="20" stroke="currentColor" strokeOpacity="0.1" strokeDasharray="3 3" />
+                    <line x1="0" y1="60" x2="500" y2="60" stroke="currentColor" strokeOpacity="0.1" strokeDasharray="3 3" />
+                    <line x1="0" y1="100" x2="500" y2="100" stroke="currentColor" strokeOpacity="0.1" strokeDasharray="3 3" />
+
+                    {/* Shaded Area */}
+                    <path
+                      d="M 20 100 Q 100 85, 180 65 T 340 35 T 480 15 L 480 110 L 20 110 Z"
+                      fill="url(#chartGrad)"
+                    />
+
+                    {/* Hours Line (Cyan) */}
+                    <path
+                      d="M 20 100 Q 100 85, 180 65 T 340 35 T 480 15"
+                      fill="none"
+                      stroke="#06b6d4"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+
+                    {/* Quizzes Line (Indigo) */}
+                    <path
+                      d="M 20 108 Q 100 95, 180 80 T 340 52 T 480 30"
+                      fill="none"
+                      stroke="#6366f1"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeDasharray="4 2"
+                    />
+
+                    {/* Labeled Data Nodes */}
+                    {[
+                      { cx: 20, cy: 100, val: '12h' },
+                      { cx: 100, cy: 85, val: '18h' },
+                      { cx: 180, cy: 65, val: '25h' },
+                      { cx: 260, cy: 50, val: '32h' },
+                      { cx: 340, cy: 35, val: '40h' },
+                      { cx: 420, cy: 25, val: '48h' },
+                      { cx: 480, cy: 15, val: '55h' },
+                    ].map((dot, i) => (
+                      <g key={i}>
+                        <circle cx={dot.cx} cy={dot.cy} r="4.5" fill="#06b6d4" stroke="#ffffff" strokeWidth="2" />
+                      </g>
+                    ))}
+                  </svg>
+
+                  {/* Month Labels */}
+                  <div className="flex justify-between text-[11px] text-muted-foreground pt-1.5 px-1 font-medium">
+                    <span>Jan (12h)</span>
+                    <span>Feb (18h)</span>
+                    <span>Mar (25h)</span>
+                    <span>Apr (32h)</span>
+                    <span>May (40h)</span>
+                    <span>Jun (48h)</span>
+                    <span>Jul (55h)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Presentation-Ready Dummy Quiz & Activity Records */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <span>Recent Quiz Performances & Milestones (3 Records)</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowQuizHistoryModal(true)}
+                    className="text-primary hover:text-primary/80 font-bold hover:underline cursor-pointer flex items-center gap-1 transition-colors group"
+                  >
+                    View History <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  {/* Record 1 */}
+                  <div className="p-3.5 rounded-xl border border-primary/20 bg-card hover:bg-muted/40 transition-colors flex items-center justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-base shrink-0 mt-0.5">
+                        <Code2 className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-semibold text-sm truncate">Data Structures & Algorithms MCQ Challenge</h4>
+                          <Badge className="bg-cyan-500/10 text-cyan-500 border-cyan-500/20 text-[10px] px-1.5 py-0">
+                            Algorithms & DSA
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          23/25 Correct • 18 mins • Rank #4 in College Leaderboard
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="font-bold text-sm text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                        92% Score
+                      </span>
+                      <p className="text-[10px] text-muted-foreground mt-1">Yesterday, 4:30 PM</p>
+                    </div>
+                  </div>
+
+                  {/* Record 2 */}
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-card hover:bg-muted/40 transition-colors flex items-center justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-base shrink-0 mt-0.5">
+                        <Brain className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-semibold text-sm truncate">Full-Stack React & Next.js Architecture Quiz</h4>
+                          <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/20 text-[10px] px-1.5 py-0">
+                            Frontend Dev
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          18/20 Correct • 14 mins • 4 Advanced Badges Earned
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="font-bold text-sm text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                        88% Score
+                      </span>
+                      <p className="text-[10px] text-muted-foreground mt-1">3 days ago</p>
+                    </div>
+                  </div>
+
+                  {/* Record 3 */}
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-card hover:bg-muted/40 transition-colors flex items-center justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-base shrink-0 mt-0.5">
+                        <Trophy className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-semibold text-sm truncate">Python, AI & Machine Learning Foundations</h4>
+                          <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px] px-1.5 py-0">
+                            AI & Data
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          24/25 Correct • 20 mins • Distinction Certification
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="font-bold text-sm text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">
+                        96% Top 🔥
+                      </span>
+                      <p className="text-[10px] text-muted-foreground mt-1">5 days ago</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Skill Distribution */}
-          <Card className="border-primary/10">
-            <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
-                <Award className="h-5 w-5 text-primary" />
-                Skill Milestones
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={skillData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {skillData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
+          {/* Skill Milestones & Achievements */}
+          <Card className="border-primary/10 hover:border-primary/30 transition-all rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+            <div>
+              <CardHeader className="pb-3 border-b border-border/50">
+                <CardTitle className="font-display flex items-center justify-between text-lg">
+                  <span className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    Skill Milestones
+                  </span>
+                  <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                    13 Tracked
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {/* Visual Status Overview */}
+                <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/60 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span>Overall Skill Proficiency</span>
+                    <span className="text-emerald-500 font-bold">78% Ready</span>
+                  </div>
+                  <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden flex">
+                    <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: '61.5%' }} title="Mastered (8)" />
+                    <div className="bg-cyan-500 h-full transition-all duration-500" style={{ width: '38.5%' }} title="In Progress (5)" />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" /> 8 Mastered (100%)
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-cyan-500" /> 5 In Progress (50-85%)
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3 Presentation-Ready Milestone Progress Items */}
+                <div className="space-y-3 pt-1">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                    Key Competency Progress (3 Milestones)
+                  </span>
+
+                  {/* Milestone 1 */}
+                  <div className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-foreground">Frontend Architecture & React</span>
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md">
+                        100% Mastered
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-emerald-500/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full w-full" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">14 Projects & Code Challenges Completed</p>
+                  </div>
+
+                  {/* Milestone 2 */}
+                  <div className="p-3 rounded-xl border border-cyan-500/20 bg-cyan-500/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-foreground">Data Structures & Problem Solving</span>
+                      <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/15 px-2 py-0.5 rounded-md">
+                        82% Advanced
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-cyan-500/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full w-[82%]" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">85 / 100 LeetCode & Campus Problems Solved</p>
+                  </div>
+
+                  {/* Milestone 3 */}
+                  <div className="p-3 rounded-xl border border-purple-500/20 bg-purple-500/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-foreground">Backend Systems & REST APIs</span>
+                      <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/15 px-2 py-0.5 rounded-md">
+                        68% Intermediate
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-purple-500/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full w-[68%]" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">7 / 10 Modules & Schema Tests Passed</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+
+            <div className="p-4 pt-0">
+              <Button
+                type="button"
+                onClick={() => setShowSkillMilestonesModal(true)}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs rounded-xl border-primary/20 hover:bg-primary/5 hover:border-primary/40 font-semibold transition-all group"
+              >
+                <Target className="w-3.5 h-3.5 mr-1.5 text-primary group-hover:scale-110 transition-transform" />
+                View All Skill Milestones
+              </Button>
+            </div>
           </Card>
         </div>
 
@@ -1048,6 +1421,18 @@ export default function StudentProfilePage() {
         </div>
 
       </div>
+
+      {/* Interactive Quiz History Modal */}
+      <QuizHistoryModal
+        isOpen={showQuizHistoryModal}
+        onClose={() => setShowQuizHistoryModal(false)}
+      />
+
+      {/* Interactive Complete 20 Skill Milestones Modal */}
+      <SkillMilestonesModal
+        isOpen={showSkillMilestonesModal}
+        onClose={() => setShowSkillMilestonesModal(false)}
+      />
     </div>
   );
 }

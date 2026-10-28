@@ -67,8 +67,8 @@ export function Chatbot() {
                 </div>
               </div>
               <Badge className="bg-white/20 text-white border-transparent text-[11px] font-semibold flex items-center gap-1">
-                <span>{currentLangOption.flag}</span>
-                <span>{currentLangOption.nativeName}</span>
+                <Sparkles className="w-3 h-3 text-yellow-300" />
+                <span>AI Online</span>
               </Badge>
             </div>
           </div>
