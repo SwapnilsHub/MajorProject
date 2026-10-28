@@ -22,6 +22,7 @@ const exploreLinks = [
   { href: '/domains', label: 'Domains' },
   { href: '/courses', label: 'Courses' },
   { href: '/colleges', label: 'Colleges' },
+  { href: '/jobs', label: 'Jobs & Internships' },
   { href: '/edumart', label: 'EduMart' },
 ];
 

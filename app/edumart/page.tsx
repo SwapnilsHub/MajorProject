@@ -42,7 +42,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AnimatedBg } from '@/components/animated-bg';
-import { jobs, type Job } from '@/lib/data';
 import { useAuth } from '@/components/auth-provider';
 import { EduMartRealtimeChat } from '@/components/edumart-realtime-chat';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -168,7 +167,6 @@ const presetSampleImages = [
 ];
 
 export default function EduMartPage() {
-  const [activeTab, setActiveTab] = React.useState<'edumart' | 'jobs'>('edumart');
   const [search, setSearch] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState('All');
   const [itemsViewFilter, setItemsViewFilter] = React.useState<'all' | 'my-listings'>('all');
@@ -176,7 +174,6 @@ export default function EduMartPage() {
   const [products, setProducts] = React.useState<EduMartProduct[]>(mockEduMartProducts);
   const [selectedProduct, setSelectedProduct] = React.useState<EduMartProduct | null>(null);
   const [activeChatProduct, setActiveChatProduct] = React.useState<EduMartProduct | null>(null);
-  const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
   const [wishlist, setWishlist] = React.useState<string[]>([]);
   const { user } = useAuth();
 
@@ -384,11 +381,7 @@ export default function EduMartPage() {
     return matchesSearch && matchesCat && matchesTab;
   });
 
-  const filteredJobs = jobs.filter((j) =>
-    j.title.toLowerCase().includes(search.toLowerCase()) ||
-    j.company.toLowerCase().includes(search.toLowerCase()) ||
-    j.location.toLowerCase().includes(search.toLowerCase())
-  );
+
 
   return (
     <div className="relative min-h-screen pt-8 pb-20">
@@ -406,38 +399,23 @@ export default function EduMartPage() {
             Affordable Student Marketplace — Buy and sell second-hand textbooks, scientific calculators, lab kits, electronics, and study materials with real-time peer chat.
           </p>
 
-          {/* Action Row: Navigation Tabs & Sell Button */}
+          {/* Action Row: Sell Button & Career Portal Link */}
           <div className="flex flex-wrap justify-center items-center gap-3 pt-2">
             <Button
-              variant={activeTab === 'edumart' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('edumart')}
-              className={
-                activeTab === 'edumart'
-                  ? 'bg-gradient-cyan-blue text-white rounded-xl shadow-md'
-                  : 'rounded-xl border-primary/30'
-              }
-            >
-              <ShoppingBag className="mr-2 h-4 w-4" /> EduMart Marketplace
-            </Button>
-
-            <Button
-              variant={activeTab === 'jobs' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('jobs')}
-              className={
-                activeTab === 'jobs'
-                  ? 'bg-gradient-brand text-white rounded-xl shadow-md'
-                  : 'rounded-xl border-primary/30'
-              }
-            >
-              <Briefcase className="mr-2 h-4 w-4" /> Student Jobs & Internships
-            </Button>
-
-            {/* High-visibility "Sell Your Material" CTA */}
-            <Button
               onClick={() => setShowSellModal(true)}
-              className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/20 px-5 transition-transform hover:scale-105 active:scale-95"
+              className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/20 px-6 py-2.5 h-auto text-sm transition-transform hover:scale-105 active:scale-95"
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Sell Your Material
+            </Button>
+
+            <Button
+              variant="outline"
+              asChild
+              className="rounded-xl border-primary/30 hover:border-primary/50 text-sm h-auto py-2.5 px-4"
+            >
+              <Link href="/jobs">
+                <Briefcase className="mr-2 h-4 w-4 text-primary" /> View Jobs & Internships →
+              </Link>
             </Button>
           </div>
         </div>
@@ -461,18 +439,13 @@ export default function EduMartPage() {
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={
-                  activeTab === 'edumart'
-                    ? 'Search textbooks, calculators, lab kit, college, seller...'
-                    : 'Search job title, company, location...'
-                }
+                placeholder="Search textbooks, calculators, lab kit, college, seller..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-11 h-12 rounded-xl border-border/80 bg-background/80"
               />
             </div>
-            {activeTab === 'edumart' && (
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-full sm:w-56 h-12 rounded-xl border-border/80 bg-background/80">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
@@ -487,12 +460,10 @@ export default function EduMartPage() {
                   <SelectItem value="Study Materials">Study Materials</SelectItem>
                 </SelectContent>
               </Select>
-            )}
           </div>
 
           {/* Quick Filter Pill Bar for Marketplace */}
-          {activeTab === 'edumart' && (
-            <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+          <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
               <div className="flex items-center gap-2">
                 <Button
                   variant={itemsViewFilter === 'all' ? 'secondary' : 'ghost'}
@@ -533,12 +504,10 @@ export default function EduMartPage() {
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* ─── EDUMART MARKETPLACE TAB ─── */}
-        {activeTab === 'edumart' && (
-          <div className="space-y-8">
+        {/* ─── EDUMART MARKETPLACE ─── */}
+        <div className="space-y-8">
             {filteredProducts.length === 0 ? (
               <div className="text-center py-16 px-4 bg-muted/20 border border-border/60 rounded-3xl max-w-xl mx-auto space-y-4">
                 <div className="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-500">
@@ -653,47 +622,6 @@ export default function EduMartPage() {
               </div>
             )}
           </div>
-        )}
-
-        {/* ─── JOBS & INTERNSHIPS TAB ─── */}
-        {activeTab === 'jobs' && (
-          <div className="space-y-6 max-w-4xl mx-auto">
-            {filteredJobs.map((job) => (
-              <Card key={job.id} className="border-primary/10 hover:border-primary/30 transition-all rounded-2xl">
-                <CardContent className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-display font-bold text-lg">{job.title}</h3>
-                      <Badge variant="outline">{job.type}</Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1 font-medium text-foreground">
-                        <Building2 className="h-3.5 w-3.5 text-primary" /> {job.company}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5" /> {job.location}
-                      </span>
-                      <span className="text-emerald-600 font-semibold">{job.salary}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {job.skills.map((s) => (
-                        <Badge key={s} variant="secondary" className="text-[11px] px-2 py-0.5">
-                          {s}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => setSelectedJob(job)}
-                    className="bg-gradient-brand text-white rounded-xl shrink-0"
-                  >
-                    View Job <ExternalLink className="ml-1.5 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
 
         {/* ─── EDU-MART PRODUCT DETAILS MODAL ─── */}
         {selectedProduct && (
@@ -1045,41 +973,6 @@ export default function EduMartPage() {
                   </Button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* Job Detail Modal */}
-        {selectedJob && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-card border border-primary/20 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative animate-scale-in">
-              <button
-                onClick={() => setSelectedJob(null)}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted"
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <div>
-                <Badge variant="outline" className="mb-2">
-                  {selectedJob.type}
-                </Badge>
-                <h2 className="font-display font-bold text-2xl">{selectedJob.title}</h2>
-                <div className="text-sm font-semibold text-primary mt-1">
-                  {selectedJob.company} • {selectedJob.location}
-                </div>
-                <div className="text-xs text-emerald-600 font-bold mt-1">{selectedJob.salary}</div>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">{selectedJob.description}</p>
-              <div className="flex gap-3 pt-2">
-                <Button className="flex-1 bg-gradient-brand text-white rounded-xl" asChild>
-                  <a href={selectedJob.applyUrl} target="_blank" rel="noreferrer">
-                    Apply Now <ExternalLink className="ml-2 h-4 w-4" />
-                  </a>
-                </Button>
-                <Button variant="outline" className="rounded-xl border-primary/30" onClick={() => setSelectedJob(null)}>
-                  Close
-                </Button>
-              </div>
             </div>
           </div>
         )}

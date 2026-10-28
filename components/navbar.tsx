@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   LogOut,
   FileText,
+  Briefcase,
   Bell,
   Check,
   X,
@@ -63,6 +64,7 @@ export function Navbar() {
     { href: '/projects', label: t.nav.projects, icon: Layers },
     { href: '/courses', label: t.nav.courses, icon: BookOpen },
     { href: '/resume', label: t.nav.resume, icon: FileText },
+    { href: '/jobs', label: t.nav.jobs, icon: Briefcase },
     { href: '/edumart', label: t.nav.edumart, icon: ShoppingBag },
   ];
 

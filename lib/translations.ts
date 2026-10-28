@@ -25,8 +25,9 @@ export interface TranslationDictionary {
     projects: string;
     domains: string;
     courses: string;
-    edumart: string;
     resume: string;
+    jobs: string;
+    edumart: string;
     profile: string;
     login: string;
     join: string;
@@ -51,8 +52,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
       projects: 'Projects',
       domains: 'Domains',
       courses: 'Courses',
-      edumart: 'EduMart',
       resume: 'Resume',
+      jobs: 'Jobs & Internships',
+      edumart: 'EduMart',
       profile: 'Student Profile',
       login: 'Login',
       join: 'Join EduGram',
@@ -86,8 +88,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
       projects: 'ಯೋಜನೆಗಳು',
       domains: 'ಡೊಮೇನ್‌ಗಳು',
       courses: 'ಕೋರ್ಸ್‌ಗಳು',
-      edumart: 'ಎಡುಮಾರ್ಟ್',
       resume: 'ರೆಸ್ಯೂಮೆ',
+      jobs: 'ಉದ್ಯೋಗಗಳು & ಇಂಟರ್ನ್‌ಶಿಪ್‌ಗಳು',
+      edumart: 'ಎಡುಮಾರ್ಟ್',
       profile: 'ವಿದ್ಯಾರ್ಥಿ ಪ್ರೊಫೈಲ್',
       login: 'ಲಾಗಿನ್',
       join: 'ಎಡುಗ್ರಾಂ ಸೇರಿ',
@@ -121,8 +124,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
       projects: 'प्रकल्प (Projects)',
       domains: 'डोमेन्स (Domains)',
       courses: 'कोर्सेस',
-      edumart: 'एड्युमार्ट (EduMart)',
       resume: 'बायोडेटा (Resume)',
+      jobs: 'नोकऱ्या आणि इंटर्नशिप',
+      edumart: 'एड्युमार्ट (EduMart)',
       profile: 'विद्यार्थी प्रोफाईल',
       login: 'लॉगिन',
       join: 'EduGram मध्ये सामील व्हा',
@@ -156,8 +160,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
       projects: 'प्रोजेक्ट्स',
       domains: 'डोमेन्स',
       courses: 'कोर्सेस',
-      edumart: 'एड्यूमार्ट',
       resume: 'रिज़्यूमे',
+      jobs: 'जॉब्स और इंटर्नशिप',
+      edumart: 'एड्यूमार्ट',
       profile: 'स्टूडेंट प्रोफाइल',
       login: 'लॉगिन',
       join: 'EduGram से जुड़ें',
@@ -191,8 +196,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
       projects: 'ప్రాజెక్ట్‌లు',
       domains: 'డొమైన్‌లు',
       courses: 'కోర్సులు',
-      edumart: 'ఎడుమార్ట్',
       resume: 'రెజ్యూమ్',
+      jobs: 'ఉద్యోగాలు & ఇంటర్న్‌షిప్‌లు',
+      edumart: 'ఎడుమార్ట్',
       profile: 'స్టూడెంట్ ప్రొఫైల్',
       login: 'లాగిన్',
       join: 'EduGram లో చేరండి',
@@ -226,8 +232,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
       projects: 'திட்டங்கள் (Projects)',
       domains: 'துறைகள் (Domains)',
       courses: 'பாடம் (Courses)',
-      edumart: 'எடுமார்ட் (EduMart)',
       resume: 'தன்னவிவரக் குறிப்பு (Resume)',
+      jobs: 'வேலைகள் & இன்டர்ன்ஷிப்',
+      edumart: 'எடுமார்ட் (EduMart)',
       profile: 'மாணவர் விவரக்குறிப்பு',
       login: 'உள்நுழைவு',
       join: 'EduGram இல் இணையுங்கள்',
