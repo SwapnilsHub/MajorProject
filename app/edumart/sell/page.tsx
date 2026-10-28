@@ -120,10 +120,44 @@ export default function SellItemPage() {
         await db.from('edumart_products').insert([productPayload]);
       }
 
+      // Sync with EduMart local marketplace listings
+      try {
+        const catMap: Record<string, 'Books' | 'Calculators' | 'Lab Equipment' | 'Electronics' | 'Instruments' | 'Laptops' | 'Study Materials'> = {
+          textbooks: 'Books',
+          electronics: 'Electronics',
+          'lab-tools': 'Lab Equipment',
+          stationery: 'Instruments',
+          'project-kits': 'Study Materials',
+          apparel: 'Study Materials',
+        };
+
+        const newListing = {
+          id: `em-custom-${Date.now()}`,
+          title,
+          category: catMap[category] || 'Study Materials',
+          price: `₹${sellingPrice}`,
+          originalPrice: originalPrice ? `₹${originalPrice}` : `₹${sellingPrice}`,
+          condition: (condition === 'Like New' || condition === 'Good' || condition === 'Fair' ? condition : 'Good'),
+          sellerName: 'You (Student Seller)',
+          college: location || 'Campus',
+          city: 'Pune',
+          verifiedSeller: true,
+          image: images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+          description,
+          postedDate: 'Just now',
+          isCustom: true,
+        };
+
+        const existing = JSON.parse(localStorage.getItem('edumart_custom_products') || '[]');
+        localStorage.setItem('edumart_custom_products', JSON.stringify([newListing, ...existing]));
+      } catch (storageErr) {
+        console.warn('LocalStorage listing sync notice:', storageErr);
+      }
+
       setSuccessMsg('🎉 Product published successfully to EduMart & InsForge Database!');
       setTimeout(() => {
         router.push('/edumart');
-      }, 1500);
+      }, 1200);
     } catch (err) {
       console.error('Error saving product:', err);
     } finally {
